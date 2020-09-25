@@ -3,6 +3,7 @@ package rest;
 import dto.PersonDTO;
 import entities.Address;
 import entities.Person;
+import facades.PersonFacade;
 import utils.EMF_Creator;
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
@@ -35,6 +36,7 @@ public class PersonResourceTest {
     private static final int SERVER_PORT = 7777;
     private static final String SERVER_URL = "http://localhost/api";
     private static Person p1,p2;
+    private static Address a1, a2; 
     
     static final URI BASE_URI = UriBuilder.fromUri(SERVER_URL).port(SERVER_PORT).build();
     private static HttpServer httpServer;
@@ -74,10 +76,15 @@ public class PersonResourceTest {
         //Person(String firstName, String lastName, String phone, Date created, Date lastEdited) 
         p1 = new Person("Thor","Christensen", "45454545");
         p2 = new Person("Frederik","Dahl", "30303030");
+        a1 = new Address("Tagensvej 154", "2200","København NV"); 
+        a2 = new Address("Frederiksbergvej 1", "2000","Frederiksberg"); 
+        p1.setAddress(a1);
+        p2.setAddress(a2);
         
         try {
             em.getTransaction().begin();
             em.createNamedQuery("Person.deleteAllRows").executeUpdate();
+            em.createNamedQuery("Address.deleteAllRows").executeUpdate();
             em.persist(p1);
             em.persist(p2); 
             em.getTransaction().commit();
@@ -92,24 +99,45 @@ public class PersonResourceTest {
         given().when().get("/person").then().statusCode(200);
     }
    
-    @Disabled 
+    
     @Test
     public void getAllPersons(){
-            List<PersonDTO> personsDTOs;
+            List<PersonDTO> personsDTOs
         
-            personsDTOs = given()
-                    .contentType("application/json")
+             = given()
+                    .contentType(ContentType.JSON)
                     .when()
                     .get("/person/all")
                     .then()
                     .extract().body().jsonPath().getList("all", PersonDTO.class);
-                    
+           
             PersonDTO p1DTO = new PersonDTO(p1);
             PersonDTO p2DTO = new PersonDTO(p2);
-                        
+            
+            //COULD NOT MAKE THIS WORK, gave an error with different objects. 
+            
+            //assertEquals(personsDTOs, containsInAnyOrder(p1DTO, p2DTO));
             assertEquals(personsDTOs.size(),2);
     }
     
+    @Test
+    public void addPerson(){
+        
+        Address a3 = new Address("Glostrupvej", "2600","Glostrup"); 
+        p1.setAddress(a3);
+        PersonDTO pDTO = new PersonDTO(p1); 
+        
+        given()
+                .contentType(ContentType.JSON)
+                .body(pDTO)
+                .when()
+                .post("person")
+                .then()
+                .body("fName", equalTo("Thor"))
+                .body("lName", equalTo("Christensen"))
+                .body("phone", equalTo("45454545"))
+                .body("id", notNullValue());
+    }
     
    
  
