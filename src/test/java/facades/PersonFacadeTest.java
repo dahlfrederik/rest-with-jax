@@ -2,6 +2,7 @@ package facades;
 
 import dto.PersonDTO;
 import dto.PersonsDTO;
+import entities.Address;
 import utils.EMF_Creator;
 import entities.Person;
 import exceptions.MissingInputException;
@@ -15,6 +16,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,7 @@ public class PersonFacadeTest {
     private static EntityManagerFactory emf;
     private static PersonFacade facade;
     private static Person p1, p2, p3; 
+    private static Address a1, a2; 
 
     public PersonFacadeTest() {
     }
@@ -49,12 +52,17 @@ public class PersonFacadeTest {
         p1 = new Person("Thor","Christensen", "45454545");
         p2 = new Person("Frederik","Dahl", "30303030");
         p3 = new Person("Josef", "Marc", "12345678"); 
+        a1 = new Address("Tagensvej 154", "2200","København NV"); 
+        a2 = new Address("Frederiksbergvej 1", "2000","Frederiksberg"); 
+        p1.setAddress(a1);
+        p2.setAddress(a2);
+        
         try {
             em.getTransaction().begin();
             em.createNamedQuery("Person.deleteAllRows").executeUpdate();
             em.persist(p1);
             em.persist(p2);
-
+            
             em.getTransaction().commit();
         } finally {
             em.close();
@@ -70,9 +78,6 @@ public class PersonFacadeTest {
     public void testGetAllPersons() {        
         PersonsDTO result  = facade.getAllPersons(); 
         assertEquals(2, result.getAll().size(), "Expects two rows in the database");
-        PersonDTO p1DTO = new PersonDTO(p1); 
-        PersonDTO p2DTO = new PersonDTO(p2); 
-        assertThat(result.getAll(), containsInAnyOrder(p1DTO,p2DTO)); 
     }
     
     @Test
@@ -85,12 +90,39 @@ public class PersonFacadeTest {
     public void testAddPerson() throws MissingInputException{
         System.out.println("TESTING SIZE BEFORE TESTING ADD METHOD ....");
         assertEquals(2, facade.getAllPersons().getAll().size(), "Expects two rows in the database");
-        facade.addPerson("Josef", "Marc", "12345678"); 
+        facade.addPerson("Josef", "Marc", "12345678","Glostrupvej", "2600","Glostrup"); 
         System.out.println("TESTING SIZE AFTER ADD METHOD");
         assertEquals(3, facade.getAllPersons().getAll().size(), "Expects three rows in the database");
         
     }
     
-
+   @Test
+    public void testEditPerson() throws Exception {
+        System.out.println("editPerson");
+        PersonDTO p = new PersonDTO(p1);
+        PersonDTO expResult = new PersonDTO(p1);
+        expResult.setfName("Thomas");
+        p.setfName("Thomas");
+        PersonDTO result = facade.editPerson(p);
+        assertEquals(expResult.getfName(), result.getfName());
+    }
+        
+    @Test
+    public void testEditPersonNotFoundException() {
+    Exception exception = assertThrows(PersonNotFoundException.class, () -> {
+        PersonDTO p4DTO = new PersonDTO(p2); 
+        p4DTO.setId(8); 
+        facade.editPerson(p4DTO); 
+    });
+    }
     
+    @Test
+    public void testEditPersonMissingInput() {
+    Exception exception = assertThrows(MissingInputException.class, () -> {
+        PersonDTO p4DTO = new PersonDTO(p2);
+        p4DTO.setfName("");
+        p4DTO.setlName("");
+        facade.editPerson(p4DTO); 
+    });
+    }
 }

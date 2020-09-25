@@ -63,16 +63,12 @@ public class PersonResource {
     }
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({MediaType.APPLICATION_JSON})
     public String addPerson(String person) throws MissingInputException {
-        aPersonDTO = GSON.fromJson(person, PersonDTO.class);
-        PersonDTO personDTO = pf.addPerson(aPersonDTO.getfName(), aPersonDTO.getlName(), aPersonDTO.getPhone()); 
-        
-        return GSON.toJson(personDTO); 
-
-        //aPersonDTO = GSON.toJson(pf.addPerson(aPersonDTO.getfName(), aPersonDTO.getlName(), aPersonDTO.getPhone()));
-        
+        PersonDTO p = GSON.fromJson(person, PersonDTO.class);
+        PersonDTO pNew = pf.addPerson(p.getfName(), p.getlName(), p.getPhone(), p.getStreet(), p.getZip(), p.getCity());
+        return GSON.toJson(pNew);
     }
     
     @DELETE
@@ -90,10 +86,8 @@ public class PersonResource {
     @Consumes({MediaType.APPLICATION_JSON})
     public String updatePerson(@PathParam("id") int id,  String person) throws PersonNotFoundException, MissingInputException {
         PersonDTO pDTO = GSON.fromJson(person, PersonDTO.class);
-        Person p = new Person(pDTO.getfName(), pDTO.getlName(), pDTO.getPhone());
-        p.setId(id);
-        PersonDTO pNew = new PersonDTO(p); 
-        pf.editPerson(pNew);
+        pDTO.setId(id); 
+        PersonDTO pNew = pf.editPerson(pDTO);
         return GSON.toJson(pNew);
     }
 
